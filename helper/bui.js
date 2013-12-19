@@ -9,24 +9,24 @@
 //                                                                                          
 //                                                                                          
 
-/** 
+/**
  * @name BUI是一个富客户端应用的前端MVC框架[源于ER框架]
  * @public
  * @author wanghaiyang
  * @date 2013/08/08
  */
-define('bui.js', [], function(){
+define('./bui', ['./JSON'], function(){
+
 // 使用window.bui定义可能会导致速度下降约7倍
 var bui = {};
-global.bui = bui;
 
 bui.env = typeof (window) === 'undefined' ? 'nodejs' : 'browser';
 bui.lang = {};
-bui.bodyId = 'body'; //默认body，也可以在后面修改
+bui.mainId = 'main'; //默认main，也可以在后面修改
 
 bui.g = function(id, parentNode) {
-    if (!parentNode || parentNode == bui.document || parentNode == bui.document.body) {
-        return bui.document.getElementById(id);
+    if (!parentNode || parentNode == bui.bocument || parentNode == bui.bocument.body) {
+        return bui.bocument.getElementById(id);
     }
     else {
         var i, len, k, v,
@@ -54,34 +54,35 @@ bui.g = function(id, parentNode) {
         return (childNode.id == id ? childNode : null);
     }
 };
+
 bui.c = function(searchClass, node, tag) {  
-    if (bui.document.getElementsByClassName) {  
-        var nodes =  (node || bui.document).getElementsByClassName(searchClass),result = nodes; 
-        if (tag!=undefined){ 
+    if (document.getElementsByClassName) {  
+        var nodes =  (node || document).getElementsByClassName(searchClass),result = nodes; 
+        if (tag != undefined) { 
             result = []; 
-            for (var i=0 ;node = nodes[i++];) { 
-                if (tag !== "*" && node.tagName === tag.toUpperCase()){ 
-                    result.push(node); 
+            for (var i=0,len=nodes.length; i<len; i++) {
+                if (tag === '*' || nodes[i].tagName.toUpperCase() === tag.toUpperCase()){ 
+                    result.push(nodes[i]);
                 }
-                else { 
-                    result.push(node); 
-                } 
             } 
         } 
         return result; 
     }
     else {  
-        node = node || bui.document;  
-        tag = tag || "*";  
-        var classes = searchClass.split(" "),  
-        elements = (tag === "*" && node.all)? node.all : node.getElementsByTagName(tag),  
-        patterns = [],  
-        returnElements = [],  
-        current,  
-        match;  
+        searchClass = searchClass != null ? String(searchClass).replace(/\s+/g, ' ') : '';
+        node = node || document;  
+        tag = tag || '*';  
+        
+        var classes = searchClass.split(' '),  
+            elements = (tag === '*' && node.all) ? node.all : node.getElementsByTagName(tag),  
+            patterns = [],  
+            returnElements = [],  
+            current,  
+            match;  
+        
         var i = classes.length;  
         while (--i >= 0) {  
-            patterns.push(new RegExp("(^|\\s)" + classes[i] + "(\\s|$)"));  
+            patterns.push(new RegExp('(^|\\s)' + classes[i] + '(\\s|$)'));  
         }  
         var j = elements.length;  
         while (--j >= 0) {  
@@ -96,6 +97,89 @@ bui.c = function(searchClass, node, tag) {
         return returnElements;  
     }  
 };
+
+bui.addClass = function (element, className) {
+    bui.removeClass(element, className);
+    element.className = (element.className +' '+ className).replace(/(\s)+/ig,' ');
+    return element;
+};
+// Support * and ?, like bui.removeClass(elem, 'daneden-*');
+bui.removeClass = function(element, className) {
+    var list = className.replace(/\s+/ig, ' ').split(' '),
+        /* Attention: str need two spaces!! */
+        str = (' ' + (element.className || '').replace(/(\s)/ig, '  ') + ' '),
+        name,
+        rex;
+    // 用list[i]移除str
+    for (var i=0,len=list.length; i < len; i++){
+        name = list[i];
+        name = name.replace(/(\*)/g,'\\S*').replace(/(\?)/g,'\\S?');
+        rex = new RegExp(' '+name + ' ', 'ig');
+        str = str.replace(rex, ' ');
+    }
+    str = str.replace(/(\s)+/ig,' ');
+    str = str.replace(/^(\s)+/ig,'').replace(/(\s)+$/ig,'');
+    element.className = str;
+    return element;
+};
+
+/** 
+ * @name 对目标字符串进行格式化
+ * @public
+ * @param {string} source 目标字符串
+ * @param {Object|string...} opts 提供相应数据的对象或多个字符串
+ * @return {string} 格式化后的字符串
+ */
+bui.format = function (source, opts) {
+    source = String(source);
+    var data = Array.prototype.slice.call(arguments,1), toString = Object.prototype.toString;
+    if(data.length){
+        data = (data.length == 1 ? 
+            /* ie 下 Object.prototype.toString.call(null) == '[object Object]' */
+            (opts !== null && (/\[object Array\]|\[object Object\]/.test(toString.call(opts))) ? opts : data) 
+            : data);
+        return source.replace(/#\{(.+?)\}/g, function (match, key){
+            var replacer = data[key];
+            // chrome 下 typeof /a/ == 'function'
+            if('[object Function]' == toString.call(replacer)){
+                replacer = replacer(key);
+            }
+            return ('undefined' == typeof replacer ? '' : replacer);
+        });
+    }
+    return source;
+};
+
+/** 
+ * @name 对数组进行排序
+ * @public
+ * @param {array} list 目标数组
+ * @param {string} field 目标排序字段
+ * @param {string} order 升序（默认）或降序
+ * @return {array} 排序后的数组
+ */
+bui.sortBy = function(list, field, order) { 
+    if (list && list.sort && list.length) { 
+        list.sort(function(a,b) { 
+            var m, n; 
+            m = String(a[field]).toLowerCase(); 
+            n = String(b[field]).toLowerCase(); 
+             
+            if (String(parseInt('0'+m, 10)) == m && String(parseInt('0'+n, 10)) == n){ 
+                m = parseInt(m, 10); 
+                n = parseInt(n, 10); 
+            }
+            else { 
+                if (m > n) { m = 1; n = -m;} 
+                else if (m < n ) { m = -1; n = -m; } 
+                else {m = 1; n = m;} 
+            } 
+            return (order == 'desc' ?  n - m : m - n ); 
+        })
+    } 
+    return list; 
+};
+
 /** 
  * @name 事件绑定与解绑 
  */ 
@@ -125,7 +209,7 @@ bui.off = function(elem, eventName, handler) {
  */
 bui.fn = function(func, scope){
     if(Object.prototype.toString.call(func)==='[object String]'){func=scope[func];}
-    if(Object.prototype.toString.call(func)!=='[object Function]'){ debugger; throw 'Error "bui.fn()": "func" is null';}
+    if(Object.prototype.toString.call(func)!=='[object Function]'){ throw 'Error "bui.fn()": "func" is null';}
     var xargs = arguments.length > 2 ? [].slice.call(arguments, 2) : null;
     return function () {
         var fn = '[object String]' == Object.prototype.toString.call(func) ? scope[func] : func,
@@ -134,11 +218,28 @@ bui.fn = function(func, scope){
     };
 };
 
-/** 
+/**
  * @name 原型继承
  * @public
  * @param {Class} child 子类
  * @param {Class} parent 父类
+ * @example 
+    bui.ChildControl = function (options, pending) {
+        //如果使用this.constructor.superClass.call将无法继续继承此子类,否则会造成死循环!!
+        bui.ChildControl.superClass.call(this, options, 'pending');
+        this.type = 'childcontrol';
+        //进入控件处理主流程!
+        if (pending != 'pending') {
+            this.enterControl();
+        }
+    };
+    bui.Form.prototype = {
+        render: function () {
+            bui.Form.superClass.prototype.render.call(this);
+            //Todo...
+        }
+    };
+    bui.inherits(bui.Form, bui.Control);
  */
 bui.inherits = function (child, parent) {
     var clazz = new Function();
@@ -158,7 +259,7 @@ bui.inherits = function (child, parent) {
     child.superClass = parent;
 };
 
-/** 
+/**
  * @name 对象扩展
  * @param {Class} child 子类
  * @param {Class} parent 父类
@@ -193,15 +294,9 @@ bui.derive = function(obj, clazz){
 bui.getObjectByName = function(name, opt_obj) {
     var parts = name.split('.'),
         part,
-        cur = opt_obj || window;
-    for ( ; part = parts.shift(); ) {
-        if (cur[part] != null) {
-            cur = cur[part];
-        } 
-        else {
-            cur = null;
-            break;
-        }
+        cur = opt_obj || bui.window;
+    while (cur&&(part=parts.shift())) {
+        cur = cur[part];
     }
     return cur;
 };
@@ -368,122 +463,9 @@ bui.isEqual = function(a, b, aStack, bStack) {
     return result;
 };
 
-/** 
- * @name 对目标字符串进行格式化
- * @public
- * @param {string} source 目标字符串
- * @param {Object|string...} opts 提供相应数据的对象或多个字符串
- *             
- * @returns {string} 格式化后的字符串
- */
-bui.format = function (source, opts) {
-    source = String(source);
-    var data = Array.prototype.slice.call(arguments,1), toString = Object.prototype.toString;
-    if(data.length){
-        data = (data.length == 1 ? 
-            /* ie 下 Object.prototype.toString.call(null) == '[object Object]' */
-            (opts !== null && (/\[object Array\]|\[object Object\]/.test(toString.call(opts))) ? opts : data) 
-            : data);
-        return source.replace(/#\{(.+?)\}/g, function (match, key){
-            var replacer = data[key];
-            // chrome 下 typeof /a/ == 'function'
-            if('[object Function]' == toString.call(replacer)){
-                replacer = replacer(key);
-            }
-            return ('undefined' == typeof replacer ? '' : replacer);
-        });
-    }
-    return source;
-};
 
-bui.sortBy = function(list, field, order) { 
-    if (list && list.sort && list.length) { 
-        list.sort(function(a,b) { 
-            var m, n; 
-            m = String(a[field]).toLowerCase(); 
-            n = String(b[field]).toLowerCase(); 
-             
-            if (String(parseInt('0'+m, 10)) == m && String(parseInt('0'+n, 10)) == n){ 
-                m = parseInt(m, 10); 
-                n = parseInt(n, 10); 
-            }
-            else { 
-                if (m > n) { m = 1; n = -m;} 
-                else if (m < n ) { m = -1; n = -m; } 
-                else {m = 1; n = m;} 
-            } 
-            return (order == 'desc' ?  n - m : m - n ); 
-        })
-    } 
-    return list; 
-};
-
-bui.File = {
-    uploadFile: function(elem){
-        var server = elem.getAttribute('server');
-        // elem
-        function uploadComplete(result) {
-            var data = (new Function('return '+result.target.responseText))();
-            bui.File.uploadComplete();
-            elem.setAttribute('url', data.result);
-            elem.onfinish();
-        }
-        
-        var fd = new FormData();
-        fd.append('fileData', elem.files[0]);  
-        
-        var xhr = new XMLHttpRequest();  
-        xhr.upload.addEventListener('progress', bui.File.uploadProgress, false);  
-        xhr.addEventListener('load', uploadComplete, false);  
-        xhr.addEventListener('error', bui.File.uploadFailed, false);  
-        xhr.addEventListener('abort', bui.File.uploadCanceled, false);  
-        xhr.open('POST', server );  
-        xhr.send(fd);  
-        //uploadComplete({target:{responseText:'{result:"http://www.jiepang.com/767676676767"}'}});
-    }, 
-    uploadProgress: function (evt) {  
-        /*if (evt.lengthComputable) {  
-            var percentComplete = Math.round(evt.loaded * 100 / evt.total);  
-            document.getElementById('progressNumber').innerHTML = percentComplete.toString() + '%';  
-        }  
-        else {  
-            document.getElementById('progressNumber').innerHTML = 'unable to compute';  
-        }*/
-        if (evt.lengthComputable) {
-            var percentComplete = Math.round(evt.loaded * 100 / evt.total);  
-            var text = percentComplete.toString() + '%'+' uploaded.';
-            if (bui.Pnotify) {
-                bui.Pnotify.show(text, 'always', 'top: 20px;');
-            }
-            else {
-                document.oldTitle = document.oldTitle ? document.oldTitle : document.title;
-                document.title = text;
-            }
-        }
-    },
-    /**
-     * @name 上传结束时调用(随后会自动调用FileInput.onfinish())
-     * @private
-     */
-    uploadComplete: function (evt) {  
-        /* This event is raised when the server send back a response */  
-        //alert(evt.target.responseText);
-        var text = 'Uploaded success.';
-        if (bui.Pnotify) {
-            bui.Pnotify.show(text, 'default', 'top: 20px;');
-        }
-        else {
-            document.title = text;
-            window.setTimeout('document.title = document.oldTitle', 500);
-        }
-    },
-    uploadFailed: function (evt) {  
-        alert('There was an error attempting to upload the file.');  
-    },  
-
-    uploadCanceled: function (evt) {  
-        alert('The upload has been canceled by the user or the browser dropped the connection.');  
-    }
-};
+// !!! global.bui = ...
+if (typeof window != 'undefined') {window.bui = bui;bui.window = window;/*bui.bocument = document;//注：bui.bocument与document不相同! bui.dom等于bui.bocument或document!*/}
+if (typeof global != 'undefined') {global.bui = bui;bui.window = global;}
 
 });

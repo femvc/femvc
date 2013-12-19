@@ -8,19 +8,22 @@
 //      \/_/     \/___/   \/_/ \/_/  `\/__/    \/___/  \/_/  \/___/    \/_____/  \/_/ \/_/  
 //                                                                                          
 //                                                                                          
-define('control.js', ['bui.js'], function(){
 
-console.log('control.js');
 /**
  * @name 控件基础类
  * @public
  * @author wanghaiyang
  * @date 2013/08/08
  */
+define('./bui.Control', ['./JSON', './bui', './bui.EventDispatcher'], function(){
+
 bui.Control = function (options, pending) {
+    bui.EventDispatcher.call(this);
     // 指向父控件
     this.parentControl = null;
     
+    // 状态列表
+    this.state = {};
     // 初始化参数
     this.initOptions( options );
     // 生成控件id
@@ -28,13 +31,13 @@ bui.Control = function (options, pending) {
         this.id = bui.Control.makeGUID(this.formName);
     }
     
-    // 设置main.id
-    if (this.main && !this.main.getAttribute('id')) {
-        this.main.setAttribute('id', this.id);
-    }
+    // 注释掉的原因：在bui.Control.create前会设置me.main
+    //if (this.main && !this.getMain().getAttribute('id')) {
+    //    this.getMain().setAttribute('id', this.id);
+    //}
     
-    // parentControl不传默认为window对象
-    var parentControl = bui.Control.get(this.parentControl) || bui.window;
+    // parentControl父控件不传则默认为window对象
+    var parentControl = bui.Control.getById(this.parentControl) || (bui.Action ? bui.Action.get() : bui.window);
     parentControl.controlMap = parentControl.controlMap || {};
     
     // 默认为根控件,若不是则会在后面render时覆盖parentControl属性
@@ -80,11 +83,11 @@ bui.Control.prototype = {
             className += '-' + opt_key;
             skinName += '-' + opt_key;
         }
-
+        
         if (me.skin) {
             className = skinName + ' ' + className;
         }
-
+        
         return className;
     },
 
@@ -105,51 +108,50 @@ bui.Control.prototype = {
         return idPrefix;
     },
     /**
-     * @name 获取控件的elem(nodejs). 注:控件即使不需要显示任何内容也必须有一个挂载的elem(可以是隐藏的),通过模板解析控件时会用到
+     * @name 获取控件的elem(nodejs). 注:控件即使不需要显示任何内容也必须有一个挂载的elem(可以是隐藏的),
+     * 通过模板解析控件时会用到 [nodejs&browser]
      * @public
      * @return {string}
      */
     getMain: function () {
         var me = this,
-            elem = typeof (me.main) != 'string' ? me.main : 
-            (me.viewOutput && typeof (document) != 'undefined' ? 
-            document.getElementById(me.main) : 
-            bui.document.getElementById(me.main));
+            elem;
+        elem = bui.dom ? bui.dom.getElementById(me.main) : null;
         return elem;
-    },
-    /**
-     * @name 获取控件的elem(browser). 注:控件即使不需要显示任何内容也必须有一个挂载的elem(可以是隐藏的),通过模板解析控件时会用到
-     * @public
-     * @return {string}
-     */
-    getRealMain: function () {
-        var me = this;
-        return document.getElementById(me.main);
     },
     /**
      * @name 获取控件的innerHTML
      * @public
+     * @param {element} elem 默认为控件主DOM[可选]
      * @return {string}
      */
-    getInnerHTML: function () {
+    getInnerHTML: function (elem) {
         var me = this,
-            elem = me.getMain(),
+            elem = elem || me.getMain(),
             html = '';
-        if (elem) {
+        if (elem.getInnerHTML) {
             html = elem.getInnerHTML();
+        }
+        else if (elem.innerHTML !== undefined) {
+            html = elem.innerHTML;
         }
         return html;
     },
     /**
-     * @name 设定控件的innerHTML
+     * @name 设定控件的innerHTML[nodejs&browser]
      * @public
+     * @param {string} html innerHTML
+     * @param {element} elem 默认为控件主DOM[可选]
      * @return {string}
      */
-    setInnerHTML: function (html) {
+    setInnerHTML: function (html, elem) {
         var me = this,
-            elem = me.getMain();
-        if (elem) {
+            elem = elem || me.getMain();
+        if (elem.setInnerHTML) {
             elem.setInnerHTML(html);
+        }
+        else if (elem.innerHTML !== undefined) {
+            elem.innerHTML = html;
         }
     },
     /**
@@ -170,14 +172,14 @@ bui.Control.prototype = {
      * @public
      */
     initView: function () {
+        var debug = true;
     },
     /**
      * @name 绑定事件
      * @public
      */
     initBehavior: function () {
-        var me = this,
-            elem = me.getRealMain();
+        var me = this;
     },
     initBehaviorByTree: function () {
         var me = this;
@@ -195,30 +197,46 @@ bui.Control.prototype = {
     validate: function() {
         var me = this,
             result = true,
-            i, 
-            len,    
-            controlMap = me.controlMap;
+            controlMap = me.controlMap,
+            Validator = bui.Control.getExtClass('bui.Validator');
         
         if (me.rule && (!me.state || !me.state.disabled)) {
             if (Object.prototype.toString.call(me.rule)!=='[object Array]') {
                 me.rule = [me.rule];
             }
-            for (i=0, len=me.rule.length; i<len && result; i++) {
+            for (var i=0, len=me.rule.length; i<len && result; i++) {
                 if (me.rule[i]) {
-                    result = result && bui.Validator.applyRule(me, me.rule[i]);
+                    result = result && Validator.applyRule(me, me.rule[i]);
                 }
             }
         }
         
         if (result && controlMap && (!me.state || !me.state.disabled)) {
-            for(i in controlMap){
-                if(i && controlMap[i] && controlMap[i].rule){
+            for (var i in controlMap) {
+                if (i && controlMap[i]) {
                     result = controlMap[i].validate() && result;
                 }
             }
         }
         
         return result;
+    },
+    hideError: function () {
+        var me = this,
+            Validator = bui.Control.getExtClass('bui.Validator');
+        Validator.cancelNoticeInTile(me.getMain());
+        if (me.controlMap) {
+            for (var i in me.controlMap) {
+                if (me.controlMap[i]) {
+                    me.controlMap[i].hideError();
+                }
+            }
+        }
+    },
+    showError: function (errorMsg) {
+        var me = this,
+            Validator = bui.Control.getExtClass('bui.Validator');
+        Validator.noticeInTail(errorMsg, me.getMain());
     },
     /**
      * @name 返回控件的值
@@ -268,7 +286,7 @@ bui.Control.prototype = {
                     childControl = me.controlMap[i];
                     formName = childControl.getFormName();
                     
-                    if (childControl.getValue) {
+                    if (childControl.getValue && String(childControl.isForm) !== 'false') {
                         paramMap[formName] = childControl.getValue();
                     }
                     else if (childControl.controlMap){
@@ -281,6 +299,30 @@ bui.Control.prototype = {
         return paramMap;
     },
     /**
+     * @name 获取控件的值，返回一个string
+     * @public
+     */
+    getParamString: function() {
+        var me = this,
+            paramMap = me.getParamMap(),
+            paramString = [],
+            toJSON = function(v){return String(v)};
+        
+        if (typeof JSON !== 'undefined' && JSON && JSON.stringify) {
+            toJSON = JSON.stringify;
+        }
+        
+        if (paramMap) {
+            for(var i in paramMap){
+                if (i) {
+                    paramString.push(i + '=' + toJSON(paramMap[i]));
+                }
+            }
+        }
+           
+        return paramString.join('&');
+    },
+    /**
      * @name 通过formName访问子控件
      * @public
      * @param {String} formName 子控件的formName
@@ -290,24 +332,260 @@ bui.Control.prototype = {
         return bui.Control.getByFormName(formName, me);
     },
     /**
+     * @name 显示控件
+     * @public
+     */
+    show: function() {
+        this.getMain().style.display = 'block';
+        bui.Control.removeClass(this.getMain(), 'hide');
+    },
+
+    /**
+     * @name 隐藏控件
+     * @public
+     */
+    hide: function() {
+        bui.Control.addClass(this.getMain(), 'hide');
+        this.getMain().style.display = 'none';
+    },
+    /**
+     * @name 获取控件状态
+     * @protected
+     * @param {string} state 要获取的状态.
+     * @return {boolean|Null}
+     */
+    getState: function(state) {
+        if (!this.state) {
+            this.state = {};
+        }
+        return !!this.state[state];
+    },
+    /**
+     * @name 设置控件的当前状态
+     * @protected
+     * @param {string} state 要设置的状态.
+     */
+    setState: function(state) {
+        var me = this, 
+            main=me.getMain();
+        if (!me.state) {
+            me.state = {};
+        }
+        
+        me.state[state] = 1;
+        bui.Control.addClass(main, me.getClass(state));
+    },
+    /**
+     * @name 移除控件的当前状态
+     * @protected
+     * @param {string} state 要移除的状态.
+     */
+    removeState: function(state) {
+        var me = this,
+            main = me.getMain();
+        if (!me.state) {
+            me.state = {};
+        }
+        
+        me.state[state] = undefined;
+        delete me.state[state];
+        
+        bui.Control.removeClass(main, me.getClass(state));
+    },
+    /**
+     * @name 设置控件不可用状态
+     * @public
+     * @param {boolean} disabled
+     */
+    setDisabled: function ( disabled ) {
+        if (typeof disabled === 'undefined') {
+            disabled = true;
+        }
+        disabled ? this.setState('disabled') : this.removeState('disabled');
+        this.getMain().disabled = disabled;
+    },
+    /**
+     * @name 设置控件不可用状态
+     * @public
+     * @param {boolean} disabled
+     */
+    setReadonly: function ( readOnly ) {
+        if (typeof readOnly === 'undefined') {
+            readOnly = true;
+        }
+        readOnly ? this.setState('readonly') : this.removeState('readonly');
+        this.getMain().readOnly = readOnly;
+    },
+    /**
+     * @name 判断控件不可用状态
+     * @public
+     * @return {boolean}
+     */
+    isDisabled: function () {
+        return this.getState('disabled');
+    },
+    isReadonly: function() {
+        return this.getState('readonly');
+    },
+    /**
+     * @name 设置控件width和height
+     * @public
+     */
+    setSize: function (size) {
+        var me = this,
+            main = me.getMain();
+        me.size = size ? size : me.size;
+        
+        if (me.size && me.size.width) {
+            main.style.width  = me.size.width;
+        }
+        if (me.size && me.size.height) {
+            main.style.height = me.size.height;
+        }
+        
+        if (me.size && me.size.top) {
+            main.style.top    = me.size.top;
+        }
+        if (me.size && me.size.right) {
+            main.style.right  = me.size.right;
+        }
+        if (me.size && me.size.bottom) {
+            main.style.bottom = me.size.bottom;
+        }
+        if (me.size && me.size.left) {
+            main.style.left   = me.size.left;
+        }
+    },
+    /**
      * @name 获取表单控件的表单名
      * @public
      * @param {Object} control
      */
     getFormName: function() {
         var me = this,
-            node = me.getMain(),
-            elem = me.getRealMain();
+            elem = me.getMain();
         var itemName = me.formName || me['name'] || 
-            (elem ? elem.getAttribute('name') : null) || 
-            (node ? node.getAttribute('name') : null) || me.getId();
+            (elem ? elem.getAttribute('name') : null) || me.getId();
         return itemName;
     },
     /**
      * @name 释放控件
      * @protected
      */
-    dispose: function() {},
+    dispose: function() {
+        var me = this,
+            controlMap,
+            main = me.getMain(),
+            k,
+            id;
+        // 从父控件的controlMap中删除引用
+        if (me.parentControl) {
+            controlMap = me.parentControl.controlMap;
+            k = me.getId();
+            controlMap[k] = undefined;
+            delete controlMap[k];
+        }
+        
+        me.disposeChild();
+        
+        if (main) {
+            // 释放控件主区域的常用事件
+            main.onmouseover = undefined;
+            main.onmouseout = undefined;
+            main.onmousedown = undefined;
+            main.onmouseup = undefined;
+            main.onkeyup = undefined;
+            main.onkeydown = undefined;
+            main.onkeypress = undefined;
+            main.onchange = undefined;
+            main.onpropertychange = undefined;
+            main.onfocus = undefined;
+            main.onblur = undefined;
+            main.onclick = undefined;
+            main.ondblclick = undefined;
+            // 清空HTML内容
+            if (main.innerHTML){
+                main.innerHTML = '';
+            }
+            main.parentNode.removeChild(main);
+            /*// 释放掉引用
+            for (var i in me.main) {
+                if (i) {
+                    try {
+                        if (Object.hasOwnProperty.call(me.main, i) && 'function,object'.indexOf(typeof (me.main[i]))>-1) {
+                            me.main[i] = undefined;
+                            delete me.main[i];
+                        }
+                    }
+                    catch (e) {
+                        // 移除一些自有属性如"valueAsNumber"时可能会出错!
+                        //console.log(e)
+                    }
+                }
+            }*/
+            //me.main = undefined;
+        }
+        
+        me.rendered = undefined;
+        
+        // 因为使用的属性而非闭包实现的EventDispatcher，因此无需担心内存回收的问题。
+    },
+    disposeChild: function(){
+        var me = this,
+            controlMap = me.controlMap;
+        // dispose子控件
+        if (controlMap) {
+            for (var k in controlMap) {
+                controlMap[k].dispose();
+                delete controlMap[k];
+            }
+            me.controlMap = {};
+        }
+    },
+    /**
+     * @name 挂载到父dom节点中,注: 通过调用bui.Control.appendControl实现
+     * @param {Element} wrap 父dom节点.
+     */
+    appendSelfTo : function(wrap) {
+        var uiObj = this,
+            elem = wrap,
+            control,
+            container = bui.dom.documentElement,
+            main;
+        if (wrap && wrap.appendChild && wrap.childNodes) {
+            while(elem && elem.tagName && String(elem.tagName).toLowerCase()!='body'){
+                // label标签自带control属性!!
+                if (elem && elem.getAttribute && elem.control && Object.prototype.toString.call(elem.control)==='[object String]') {
+                    control = bui.Control.getById(elem.control);
+                    // 将控件从临时容器移动到指定控件下
+                    bui.Control.appendControl(control, uiObj);
+                    break;
+                }
+                else {
+                    elem = elem.parentNode;
+                }
+            }
+            
+            if (uiObj.getMain()) {
+                wrap.appendChild(uiObj.getMain());
+            }
+        }
+        else if (wrap && wrap.controlMap) {
+            bui.Control.appendControl(wrap, uiObj);
+            main = uiObj.getMain();
+            if (main) {
+                control = wrap;
+                while (control) {
+                    container = control.getMain();
+                    if (container) {
+                        break;
+                    }
+                    control = control.parentControl;
+                }
+                container.appendChild(main);
+            }
+        }
+    },
     /**
      * @name Control的主要处理流程
      * @protected
@@ -321,6 +599,14 @@ bui.Control.prototype = {
             parentControl = uiObj.parentControl;
         
         elem = uiObj.getMain();
+        // 注：默认增加一个空元素作为控件主元素!
+        if (!elem) {
+            elem = bui.dom.createElement('DIV');
+            elem.id = String(Math.random());
+            uiObj.main = elem.id;
+            bui.dom.documentElement.appendChild(elem);
+        }
+        
         if ( elem ) {
             // 便于通过elem.control找到control
             elem.control = objId;
@@ -330,7 +616,7 @@ bui.Control.prototype = {
                 elem = elem.parentNode;
                 //label标签自带control属性!!
                 if (elem && elem.getAttribute && elem.control  && Object.prototype.toString.call(elem.control)==='[object String]') {
-                    control = bui.Control.get(elem.control, parentControl);
+                    control = bui.Control.getById(elem.control, parentControl);
                     bui.Control.appendControl(control, uiObj);
                     break;
                 }
@@ -341,7 +627,9 @@ bui.Control.prototype = {
             
             // 每个控件渲染开始的时间。
             uiObj.startRenderTime = new Date();
-            
+            // 1. initView()会在render调用父类的render时自动调用，
+            // 2. 不管是批量bui.Control.init()还是bui.Control.create(), 都会通过enterControl来执行render
+            // 3. initBehavior()会在后面执行
             if (uiObj.render){
                 uiObj.render();
             }
@@ -363,10 +651,20 @@ bui.Control.prototype = {
             }
             
             uiObj.endRenderTime = new Date();
+            
+            if (uiObj.initBehaviorByTree) {
+                uiObj.initBehaviorByTree();
+            }
+            else if (uiObj.initBehavior) {
+                uiObj.initBehavior();
+            }
+            
+            uiObj.endInitBehaviorTime = new Date();
         }
     }
 };
 
+bui.inherits(bui.Control, bui.EventDispatcher);
 /*
  * @name BUI组件方法库
  * @static
@@ -384,7 +682,7 @@ bui.Control.makeGUID = (function(){
         return '_' + (formName ? formName : 'inner') + '_' + ( guid++ );
     };
 })();
-
+ 
 /**
  * @name 初始化控件渲染
  * @public
@@ -393,14 +691,23 @@ bui.Control.makeGUID = (function(){
  * @param {Object}      parentControl 渲染的action,不传则默认为window对象
  * @return {Object} 控件集合
  */
-//bui.Control.init('<div ui="type:"></div>');
-//bui.Control.init(bui.document.getElementById('content'));
+//bui.Control.init('<div ui="type:"></div>');//暂时禁止此方法生成控件树
+//bui.Control.init(bui.bocument.getElementById('content'));
 bui.Control.init = function ( opt_wrap, opt_propMap, parentControl ) {
+    if (!opt_wrap) {
+        return false;
+    }
+    // [nodejs&browser]
+    if (!bui.dom && opt_wrap.setInnerHTML) {
+        bui.dom = bui.bocument;
+    }
+    bui.dom = bui.dom || document;
+    
     /*Step 1: 转换string到DOM
     // 容器为空的判断
     if (typeof (opt_wrap) == 'string') {
-        bui.document.documentElement.setInnerHTML(opt_wrap);
-        opt_wrap = bui.document.documentElement;
+        bui.bocument.documentElement.setInnerHTML(opt_wrap);
+        opt_wrap = bui.bocument.documentElement;
     }*/
     
     /*Step 2: 转换DOM到control*/
@@ -417,7 +724,7 @@ bui.Control.init = function ( opt_wrap, opt_propMap, parentControl ) {
     
     // 把dom元素存储到临时数组中
     // 控件渲染的过程会导致elements的改变
-    realEls = bui.HTMLElement.findAllNodes(opt_wrap);
+    realEls = bui.Control.findAllNodes(opt_wrap);
     
     // 循环解析自定义的ui属性并渲染控件
     // <div ui="type:'UIType',id:'uiId',..."></div>
@@ -438,8 +745,8 @@ bui.Control.init = function ( opt_wrap, opt_propMap, parentControl ) {
                     
                     attrValue = opt_propMap[attrName];
                     // 默认读取opt_propMap中的,没有再到全局context中取,防止强耦合.
-                    if (attrValue === undefined && bui && bui.context && bui.context.get) { 
-                        attrValue = bui.context.get(attrName);
+                    if (attrValue === undefined) { 
+                        attrValue = bui.Control.getExtClass('bui.context').get(attrName);
                     }
                     attrs[j] = attrValue;
                 }
@@ -458,7 +765,7 @@ bui.Control.init = function ( opt_wrap, opt_propMap, parentControl ) {
             }*/
             
             // 主元素参数初始化
-            if(attrs.main          == undefined && elem)          {attrs.main = elem;}
+            if(attrs.main          == undefined && elem)          {attrs.main = elem.getAttribute('id') ? elem.getAttribute('id') : String(Math.random()); elem.setAttribute('id', attrs.main);}
             if(attrs.parentControl == undefined && parentControl) {attrs.parentControl = parentControl;}
             // 生成控件 //这里的parentControl, elem不能去掉!!否则在后面的enterControl理会重复生成elem!!! 
             //control = bui.Control.create( attrs[ 'type' ], attrs, parentControl, elem);
@@ -474,6 +781,7 @@ bui.Control.init = function ( opt_wrap, opt_propMap, parentControl ) {
     
     return parentControl.controlMap;
 };
+
 /**
  * @name 创建控件对象
  * @public
@@ -483,7 +791,13 @@ bui.Control.init = function ( opt_wrap, opt_propMap, parentControl ) {
  */
 bui.Control.create = function ( type, options) {
     options = options || {};
-
+    
+    // [nodejs&browser]
+    if (!bui.dom && options['main'] && options['main'].setInnerHTML) {
+        bui.dom = bui.bocument;
+    }
+    bui.dom = bui.dom || document;
+    
     var uiClazz = bui[ type ],
         objId   = options.id,
         uiObj   = null,
@@ -530,7 +844,7 @@ bui.Control.appendControl = function(parent, uiObj) {
     var ctrId = uiObj.getId(),
         parentControl;
     
-    if (uiObj.parentControl && ((parentControl = bui.Control.get(uiObj.parentControl))||{}).controlMap) {
+    if (uiObj.parentControl && ((parentControl = bui.Control.getById(uiObj.parentControl))||{}).controlMap) {
         parentControl.controlMap[ctrId] = undefined;
         delete parentControl.controlMap[ctrId];
     }
@@ -543,6 +857,44 @@ bui.Control.appendControl = function(parent, uiObj) {
     // 
 };
 
+/**
+ * @name 获取所有子节点element
+ * @public
+ * @param {HTMLElement} main
+ * @param {string} stopAttr 如果元素存在该属性,如'ui',则不遍历其下面的子元素
+ */
+bui.Control.findAllNodes = function(main, stopAttr){
+    var i, len, k, v,
+        childNode,
+        elements,
+        list,
+        childlist,
+        node;
+    elements=[];
+    list=[main];
+    
+    while(list.length){
+        childNode= list.pop();
+        if(!childNode) continue;
+        // Not set 'stopAttr', get all nodeds.
+        if (stopAttr === undefined || (childNode.getAttribute && childNode.getAttribute(stopAttr))) {
+            elements.push(childNode);
+        }
+        childlist = childNode.childNodes;
+        if (!childlist||childlist.length<1) continue;
+        if (childNode != main && stopAttr!==undefined && childNode.getAttribute(stopAttr)) {
+            continue;
+        }
+        for (i=0,len=childlist.length;i<len;i++){
+            node = childlist[i];
+            list.push(node);
+        }
+    }
+    // 去掉顶层main,如不去掉处理复合控件时会导致死循环!!
+    if(elements[0] === main) elements.shift();
+    
+    return elements.reverse();
+};
 /**
  * @name 获取父控件或Action下所有控件
  * @public
@@ -581,17 +933,17 @@ bui.Control.findAllControl = function(parentControl){
 /**
  * @name 根据控件id找到对应控件
  * @public
- * @parent可不传,默认从当前Action开始找
+ * @parent可不传, 默认从当前Action开始找, 如果未使用action则直接从bui.window.controlMap开始找
  * @id 控件ID
  * @param {String} 控件id
  */
-bui.Control.get = function(id, parentControl){
+bui.Control.getById = function(id, parentControl){
     var me = this,
         list,
         result = null;
-    // parentControl || bui.Control.get(parentControl) || bui.Action.get(parentControl) || bui.Action.get() || window
+    // parentControl || bui.Control.getById(parentControl) || bui.Action.get(parentControl) || bui.Action.get() || window
     if (typeof parentControl == 'string') {
-        parentControl = bui.Control.get(parentControl);
+        parentControl = bui.Control.getById(parentControl);
     }
     parentControl = parentControl || bui.window;
     
@@ -619,14 +971,15 @@ bui.Control.getByFormName = function(formName, parentControl){
         list,
         result = null;
     // 确定parentControl
-    parentControl = bui.Control.get(parentControl);
+    parentControl = bui.Control.getById(undefined, parentControl);
     
     if (formName) {
         formName = String(formName);
         
         // 先查找自身及直接子级
         list = parentControl && parentControl.controlMap ? parentControl.controlMap : {};
-        list.unshift(parentControl);
+        //list.unshift(parentControl);
+        result = parentControl.getFormName() === formName ? parentControl : null;
         for (var i in list) {
             if (list[i].getFormName() === formName) {
                 result = list[i];
@@ -645,6 +998,7 @@ bui.Control.getByFormName = function(formName, parentControl){
     
     return result;
 };
+
 
 /**
  * @name 为目标元素添加className
@@ -783,6 +1137,50 @@ bui.Control.formatDate = function(date, fmt) {
         }      
     }      
     return fmt;      
+};
+
+
+bui.Control.getExtClass = function (clazz) {
+    var result = function(){};
+    switch (clazz) {
+        case 'bui.BaseModel':
+            if (typeof bui !== 'undefined' && bui.BaseModel) {
+                result = bui.BaseModel;
+            }
+            else {
+                result.get = new Function();
+                result.set = new Function();
+            }
+        break;
+        case 'bui.Validator':
+            if (typeof bui !== 'undefined' && bui.Validator) {
+                result = bui.Validator;
+            }
+            else {
+                result.cancelNoticeInTile = new Function();
+                result.set = new Function();
+            }
+        break;
+        case 'bui.Action':
+            if (typeof bui !== 'undefined' && bui.Validator) {
+                result = bui.Validator;
+            }
+            else {
+                result.get = new Function();
+            }
+        break;
+        case 'bui.context':
+            if (typeof bui !== 'undefined' && bui.context) {
+                result = bui.context;
+            }
+            else {
+                result = {};
+                result.get = new Function();
+            }
+        break;
+        default: 
+    }
+    return result;
 };
 
 });

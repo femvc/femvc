@@ -1,0 +1,155 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Untitled 1</title>
+</head>
+
+<body>
+
+<style type="text/css">
+div.task {width: 168px; height: 39px; margin-top: 4px; font-size: 9pt; position: relative; background-repeat: no-repeat; padding-left: 5px; cursor: move;}
+div.task {background-image: url('vm/img/Task_box.gif');}
+div.tasktitle {padding-top: 3px; position: absolute; cursor: pointer; color: white;}
+div.draghandle {position: absolute; bottom: 0px; left: 0px; height: 16px; width: 146px;}
+div.taskhours {position: absolute; bottom: 3px; color: #444;}
+div.taskhours {left: 5px;}
+div.pointperson {position: absolute; bottom: 3px; color: #444;}
+div.pointperson {right: 1px;}
+div.taskmenutrap {position: absolute; bottom: 3px; color: #444;}
+div.taskmenutrap {cursor: pointer; width: 12px; height: 12px; right: 10px;}
+</style>
+
+<div style="z-index: 1000; left: 8px; top: 1px; opacity: 0.7;" id="task_-833590189654452846" class="task">
+	<div id="tasktitle_-833590189654452846" class="tasktitle" title="[Android]个人设置">
+		[Android]个人设置</div>
+	<div class="draghandle">
+		<div class="taskhours">
+			Hrs: <span id="hours_-833590189654452846">-</span></div>
+		<div id="pp_-833590189654452846" class="pointperson">
+			(unspecified)</div>
+	</div>
+	<div id="menu_-833590189654452846" class="taskmenutrap">
+	</div>
+</div>
+
+<style type="text/css">
+div.taskmenu {position: absolute; background-color: white; border: 1px solid #888; margin: 0px; padding: 0px;}
+div.taskmenu ul {list-style-type: none; margin: 0px; padding: 0px;}
+div.taskmenu ul li {list-style-type: none; display: block; margin: 0px; padding: 2px;}
+</style>
+
+<div id="taskmenu" class="taskmenu">
+	<ul>
+		<li id="take">Take Task</li>
+		<li id="edit">Edit Task</li>
+		<li id="delete">Delete Task</li>
+	</ul>
+</div>
+
+<style type="text/css">
+#addTaskTable {margin: 5px;}
+#addTaskDiv td {padding-bottom: 2px; padding-right: 2px;}
+.inputLabel {width: 100px; text-align: right; font-size: 9pt; color: black;}
+#addTask_Title {width: 250px;}
+input {vertical-align: middle;}
+#taskaddcomment {border: 1px solid #A9A9A9;}
+#taskaddcomment {color: black; height: 68px; padding: 2px; width: 260px;}
+textarea {font-size: 10pt; font-family: Arial, Helvetica, sans-serif;}
+#addTaskDiv #taskaddcommentbuttondiv {text-align: right; padding-top: 5px; border: 0px; width: 264px;}
+#addTaskDiv div {border: 1px solid #A9A9A9; font-size: 8pt; color: #909090;}
+.commentsLabel {text-align: left; font-size: 9pt; color: black;}
+#taskcomments {width: 264px; height: 270px; overflow: scroll; padding-top: 2px; padding-bottom: 2px; vertical-align: top;}
+#taskcomments {border: 1px solid #A9A9A9;}
+#addTask_Description {width: 250px;}
+#addTask_PointPerson {width: 254px;}
+#addTask_Estimate {width: 3em;}
+#addTask_mySpentToday {width: 3em;}
+</style>
+
+<div id="addTaskDiv">
+	<table id="addTaskTable">
+		<tr>
+			<td class="inputLabel">Title:</td>
+			<td><input id="addTask_Title" type="text" /></td>
+			<td rowspan="6" style="vertical-align: top;">
+			<table cellspacing="0px">
+				<tr>
+					<td style="padding-top: 0px">
+					<textarea id="taskaddcomment" name="S1" rows="1" cols="20"></textarea>
+					<div id="taskaddcommentbuttondiv">
+						<input class="addTaskCommentButton" style="border: 0px;" id="addTaskCommentButton" src="vm/img/comment-button.gif" title="Post Comment" type="image" />
+					</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="commentsLabel">Comments:</td>
+				</tr>
+				<tr>
+					<td rowspan="3">
+					<div id="taskcomments" style="color: black;">
+					</div>
+					</td>
+				</tr>
+			</table>
+			</td>
+		</tr>
+		<tr>
+			<td class="inputLabel" style="vertical-align: top;">Description:</td>
+			<td>
+			<textarea id="addTask_Description" cols="40" rows="12" name="S2"></textarea></td>
+		</tr>
+		<tr>
+			<td class="inputLabel">Point Person:</td>
+			<td><select id="addTask_PointPerson" name="D1"></select></td>
+		</tr>
+		<tr>
+			<td class="inputLabel">Status:</td>
+			<td><select id="addTask_Status" name="D2">
+			<option value="Not Started">Not Started</option>
+			<option value="Impeded">Impeded</option>
+			<option value="In Progress">In Progress</option>
+			<option value="Done">Done</option>
+			</select> </td>
+		</tr>
+		<tr>
+			<td colspan="2" style="vertical-align: top">
+			<table>
+				<tr>
+					<td class="inputLabel">Team hours remaining:</td>
+					<td><input id="addTask_Estimate" type="text" /></td>
+					<td class="inputLabel">Original Estimate:</td>
+					<td><span class="inputLabel" id="addTask_OriginalEstimate">
+					</span></td>
+				</tr>
+				<tr style="display: none;" id="hoursSpentRow">
+					<td class="inputLabel">My hours spent today:</td>
+					<td><input id="addTask_mySpentToday" type="text" /></td>
+					<td class="inputLabel">My total spent:</td>
+					<td><span class="inputLabel" id="addTask_myTotal"></span>
+					</td>
+				</tr>
+			</table>
+			</td>
+		</tr>
+		<tr style="height: 30px;">
+			<td colspan="2">&nbsp;</td>
+		</tr>
+		<tr style="height: 15px;">
+			<td colspan="3">&nbsp;</td>
+		</tr>
+		<tr>
+			<td></td>
+			<td colspan="2" style="text-align: right;">
+			<input class="addTask_OK" style="cursor: pointer;" id="addTask_OK" src="vm/img/ok-button-active.gif" title="OK" type="image" />
+			<input class="addTask_Cancel" style="cursor: pointer;" id="addTask_Cancel" src="vm/img/cancel-button-active.gif" title="Cancel" type="image" />
+			</td>
+		</tr>
+	</table>
+</div>
+
+
+</body>
+
+</html>

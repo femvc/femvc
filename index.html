@@ -1,46 +1,78 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html>
 
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Untitled 1</title>
-<script type="text/javascript" src="define.js"></script>
+<meta charset="utf-8" />
+<title>HTML5 Template</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no,target-densitydpi=medium-dpi" />
+<meta content="telephone=no" name="format-detection" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<script type="text/javascript">
+<!--
+(function(){if(!/*@cc_on!@*/0)return;var e = "abbr,article,aside,audio,bb,canvas,datagrid,datalist,details,dialog,eventsource,figure,footer,header,hgroup,mark,menu,meter,nav,output,progress,section,time,video".split(','),i=e.length;while(i--){document.createElement(e[i])}})()
+//-->
+</script>
+<style type="text/css">
+html {padding: 0px; margin: 0px;}
+body {padding: 0px; margin: 0px; font-family: Microsoft YaHei; }
+a, img {border: 0px;}
+.clearfix {clear: both; font-size: 1px; height: 1px; line-height: 1px; margin-top: -1px; overflow: hidden;}
+
+.validate-text {color:red;}
+
+</style>
+
+<link rel="stylesheet" type="text/css" href="vm/taskboard.css"     />
+<link rel="stylesheet" type="text/css" href="vm/webclient.css"     />
+
+<link rel="stylesheet" type="text/css" href="vm/css/ui-modal.css"     />
+
+<script type="text/javascript" src="asset/asset.js"></script>
+<script>
+// 判断屏幕是否旋转
+/*
+function orientationChange() {
+    var action = bui.Action.get();
+    if (action && action.orientationChange) {
+        action.orientationChange();
+    }
+}
+// 添加事件监听
+if (bui.window.addEventListener) {
+    bui.window.addEventListener('load', function(){
+        orientationChange();
+        bui.window.onorientationchange = orientationChange;
+    });
+}
+*/
+</script>
+
+<style type="text/css">
+.content-width { border: 1px solid green;max-width: 600px;}
+</style>
+<style media="all and (orientation:portrait)" type="text/css">
+.content-width { width: 98%; }
+</style>
+<style media="all and (orientation:landscape)" type="text/css">
+.content-width { width: 96%; }
+</style>  
+
 </head>
 
 <body>
-<div id="content3"></div>
-<div id="content1">
-<div ui="type:'ButtonGroup',formName:'cost',value:'50-100',options:['0-50','50-100','100-150','150-200','200+']"></div>
-<div ui="type:'ButtonGroup',formName:'cost',value:'50-100',options:['0-50','50-100','100-150','150-200','200+']"></div>
-</div>
-
-<div id="content">
-<div ui="type:'ButtonGroup',formName:'cost',value:'50-100',options:['0-50','50-100','100-150','150-200','200+']" nodejs_initView="true" ><button type="button" id="_cost_10-50" value="0-50" class="btn btn-info " onclick="bui.Control.get('_cost_1').setValue(this.getAttribute('value'))" >0-50</button><button type="button" id="_cost_150-100" value="50-100" class="btn btn-info  active" onclick="bui.Control.get('_cost_1').setValue(this.getAttribute('value'))" >50-100</button><button type="button" id="_cost_1100-150" value="100-150" class="btn btn-info " onclick="bui.Control.get('_cost_1').setValue(this.getAttribute('value'))" >100-150</button><button type="button" id="_cost_1150-200" value="150-200" class="btn btn-info " onclick="bui.Control.get('_cost_1').setValue(this.getAttribute('value'))" >150-200</button><button type="button" id="_cost_1200+" value="200+" class="btn btn-info " onclick="bui.Control.get('_cost_1').setValue(this.getAttribute('value'))" >200+</button></div>
-<div ui="type:'ButtonGroup',formName:'cost',value:'50-100',options:['0-50','50-100','100-150','150-200','200+']" nodejs_initView="true" ><button type="button" id="_cost_20-50" value="0-50" class="btn btn-info " onclick="bui.Control.get('_cost_2').setValue(this.getAttribute('value'))" >0-50</button><button type="button" id="_cost_250-100" value="50-100" class="btn btn-info  active" onclick="bui.Control.get('_cost_2').setValue(this.getAttribute('value'))" >50-100</button><button type="button" id="_cost_2100-150" value="100-150" class="btn btn-info " onclick="bui.Control.get('_cost_2').setValue(this.getAttribute('value'))" >100-150</button><button type="button" id="_cost_2150-200" value="150-200" class="btn btn-info " onclick="bui.Control.get('_cost_2').setValue(this.getAttribute('value'))" >150-200</button><button type="button" id="_cost_2200+" value="200+" class="btn btn-info " onclick="bui.Control.get('_cost_2').setValue(this.getAttribute('value'))" >200+</button></div>
-</div>
-
+<div class="clearfix">&nbsp;</div>
+<div id="main"></div>
 
 <script type="text/javascript">
-'use strict';
-// Only need in window
+<!--
+define('./femvc_init', ['./bui.init'], function(){
 
-require('index.js');
-/*require('./htmlparser.js');
-require('./control.js');
-require('./button-group.js');
-debugger;
-var haiyang = bui.Control.init("<div ui=\"type:'ButtonGroup',id:'cost',name:'cost',value:'50-100',options:['0-50','50-100','100-150','150-200','200+']\"></div>");
-console.log(haiyang);
+bui.init();
 
-function doit(){
-    //Todo
-    
-}
-*/
-
-
+});
 //-->
 </script>
+<div class="clearfix">&nbsp;</div>
 </body>
 
 </html>

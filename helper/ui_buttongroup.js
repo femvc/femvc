@@ -9,7 +9,6 @@
 //                                                                                          
 //                                                                                          
 
-define('button-group.js', ['bui.js', 'control.js'], function(){
 /**
  * @name 按钮多项选择
  * @public
@@ -17,6 +16,8 @@ define('button-group.js', ['bui.js', 'control.js'], function(){
  * @date 2013/08/08
  * @param {Object} options 控件初始化参数.
  */
+define('./bui.ButtonGroup', ['./bui', './bui.Control'], function(){
+
 bui.ButtonGroup = function (options, pending) {
     bui.ButtonGroup.superClass.call(this, options, 'pending');
     
@@ -36,7 +37,7 @@ bui.ButtonGroup.prototype = {
      */
     getTpl: function () {
         var tpl = '<button type="button" id="#{0}" value="#{1}" class="btn btn-info #{2}" ' + 
-            ' onclick="bui.Control.get(\'#{3}\').setValue(this.getAttribute(\'value\'))" >#{1}</button>';
+            ' onclick="bui.Control.getById(\'#{3}\').setValue(this.getAttribute(\'value\'))" >#{1}</button>';
         
         return tpl;
     },
@@ -60,7 +61,6 @@ bui.ButtonGroup.prototype = {
                 me.getId()
             ));
         }
-        
         me.setInnerHTML(html.join(''));
     },
     /**
@@ -121,6 +121,7 @@ bui.ButtonGroup.prototype = {
     render: function() {
         bui.ButtonGroup.superClass.prototype.render.call(this);
         var me = this;
+        
         me.setValue(me.value);
         //me.options = ["0|所有","2|小清新","3|猎奇","4|约会","5|复古","6|下午茶","7|买醉","8|文艺","9|名人出入","10|有故事","11|小聚","12|隐蔽","13|音乐","14|娱乐","15|一个人","16|好风景","17|私房菜","18|电影","19|坏品位","20|附近","21|咖啡馆/沏茶店","22|逛街","23|甜品","24|日本料理","25|露天","26|宵夜","27|爱吃辣","28|早午餐","29|晚餐","30|新开"];
         
@@ -135,9 +136,9 @@ bui.ButtonGroup.prototype = {
         var me = this,
             options = me.getMain().getElementsByTagName('BUTTON'),
             item;
-        if (me.value === value) {
+        /*if (me.value === value) {
             value = null;
-        }
+        }*/
         for (var i=0,len=options.length; i<len; i++) {
             item = options[i];
             if (value != undefined && item.getAttribute('value') === String(value)) {

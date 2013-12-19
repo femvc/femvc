@@ -1,39 +1,18 @@
 'use strict';
 /*
- * HTML Parser By John Resig (ejohn.org)
- * Original code by Erik Arvidsson, Mozilla Public License
- * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
- *
- * // Use like so:
- * document(htmlString, {
- *     start: function(tag, attrs, hasChild) {},
- *     end: function(tag) {},
- *     chars: function(text) {},
- *     comment: function(text) {}
- * });
- *
- * // or to get an XML string:
- * HTMLtoXML(htmlString);
- *
- * // or to get an XML DOM Document
- * HTMLtoDOM(htmlString);
- *
- * // or to inject into an existing document/DOM node
- * HTMLtoDOM(htmlString, document);
- * HTMLtoDOM(htmlString, document.body);
+ * HTML Parser By Andy Wang (femvc.com)
+ * Original code by Andy Wang, Mozilla Public License
+ * Use like this:
+ *     var opt_str = '<div id="test">This is a test.</div>';
+ *     bui.bocument.documentElement.setInnerHTML(opt_str);
+ *     alert(bui.bocument.getElementById('test').getInnerHTML());
  *
  */
-if (typeof bui == 'undefined'    && typeof global != 'undefined') {global.bui = {};}
-if (typeof define == 'undefined' && typeof global != 'undefined') {global.define = function(a, b, c){return c();};}
-if (typeof bui == 'undefined'    && typeof window != 'undefined') {window.bui = {};}
-if (typeof define == 'undefined' && typeof window != 'undefined') {window.define = function(a, b, c){return c();};}
-
-// if you don't like define(), you can remove it, it dosen't matter
-define('htmlparser.js', ['bui.js'], function(){
+define('./bui.HTMLElement', ['./bui'], function(){
 
 bui.HTMLElement = function(options) {
     this.guid = bui.HTMLElement.makeGUID();
-};
+}
 bui.HTMLElement.prototype = {
     getGUID: function () {
         var me = this;
@@ -107,9 +86,9 @@ bui.HTMLElement.prototype = {
         return result;
     },
     setInnerHTML: function (str) {
-        var root = this;
-        root.childNodes = [];
-        bui.HTMLParser.parse(str, root);
+        var me = this;
+        me.childNodes = [];
+        bui.bocument.parse(str, me);
     },
     getInnerHTML: function () {
         var me = this,
@@ -156,7 +135,6 @@ bui.HTMLElement.makeGUID = (function(){
  * @public
  * @param {HTMLElement} elem
  * @param {string} stopAttr 如果元素存在该属性,如'ui',则不遍历其下面的子元素
- * @comment 在getElementByGUID(),getElementById(),getElementsByTagName()都会用到!!
  */
 bui.HTMLElement.findAllNodes = function(elem, stopAttr){
     var i, len, k, v,
@@ -200,7 +178,7 @@ bui.HTMLElement.findAllNodes = function(elem, stopAttr){
 bui.HTMLElement.getElementByGUID = function (guid, parentNode) {
     var me = this,
         result = null,
-        parentNode = parentNode || bui.document.documentElement,
+        parentNode = parentNode || bui.bocument.documentElement,
         list = bui.HTMLElement.findAllNodes(parentNode);
     
     if (guid === undefined || guid === parentNode.getGUID()) {
@@ -218,7 +196,7 @@ bui.HTMLElement.getElementByGUID = function (guid, parentNode) {
     return result;
 };
 
-bui.HTMLParser = {
+bui.bocument = {
     // Regular Expressions for parsing tags and attributes
 	startTag: /^<([-A-Za-z0-9_]+)((?:\s+\w+(?:\s*=\s*(?:(?:"[^"]*\")|(?:'[^']*\')|[^>\s]+))?)*)\s*(\/?)>/,
 	endTag  : /^<\/([-A-Za-z0-9_]+)[^>]*>/,
@@ -357,7 +335,7 @@ bui.HTMLParser = {
     },
     treeConstruction: function (tokens, parentNode) {
         var me = this,
-            domtree = parentNode || bui.document.documentElement,
+            domtree = parentNode || bui.bocument.documentElement,
             curentParent = domtree,
             token,
             elem,
@@ -367,16 +345,14 @@ bui.HTMLParser = {
             
             if (token.nodeType == 'selfClose') {
                 elem = me.createElement(token.tagName, token);
-                curentParent.childNodes = curentParent.childNodes || [];
                 curentParent.childNodes.push(elem);
                 elem.parentNode = curentParent.getGUID();
             }
             else if (me.empty[token.tagName] || token.nodeType == 'startTag') {
                 token.nodeType = 'startTag';
                 elem = me.createElement(token.tagName, token);
-                curentParent.childNodes = curentParent.childNodes || [];
                 curentParent.childNodes.push(elem);
-                elem.parentNode = curentParent.getGUID ? curentParent.getGUID() : curentParent.guid;
+                elem.parentNode = curentParent.getGUID();
                 
                 // Not empty tag
                 if (!me.empty[token.tagName] && !me.closeSelf[token.tagName]) {
@@ -412,14 +388,43 @@ bui.HTMLParser = {
         var me = this,
             clazz = me.getElementConstructor(),
             elem = new clazz();
+        
+        options.tagName = tagName;
+        
         for (var i in options) {
             elem[i] = options[i];
         }
         return elem;
     },
-    getElementConstructor: function(){
-        return bui.HTMLElement;
+    getElementConstructor: function () {
+        return function () {
+            this.getGUID = function(){return this.guid;};
+        };
+    },
+    getElementById: function (id) {
+        var me = this,
+            list = bui.HTMLElement.findAllNodes(bui.bocument.documentElement),
+            result = undefined;
+
+        for (var i=0,len=list.length; i<len; i++) {
+            if (id === list[i].getAttribute('id')){
+                result = list[i];
+                break;
+            }
+        }
+        return result;
     }
 };
+// Over write method 'getElementConstructor'
+bui.bocument.getElementConstructor = function () {
+    return bui.HTMLElement;
+};
+
+// 根节点 
+bui.bocument.documentElement = bui.bocument.createElement('HTML', {childNodes:[], clazz: 'HTMLElement()', nodeType: 'startTag'});
+// body节点 
+bui.bocument.body = bui.bocument.createElement('BODY', {childNodes:[], clazz: 'HTMLElement()', nodeType: 'startTag'});
+
+bui.window = {};
 
 });
