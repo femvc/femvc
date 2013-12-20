@@ -29,19 +29,19 @@ bui.Mockup = {
         //mockup是数组
         else if (Object.prototype.toString.call(target)==='[object Array]') {
             if (target.length>0) {
-                opt_options['onsuccess'](target[(new Date()).getTime()%target.length])
+                opt_options['onsuccess'](null, target[(new Date()).getTime()%target.length])
             }
             else {
-                opt_options['onsuccess'](target);
+                opt_options['onsuccess'](null, target);
             }
         }
         //mockup是对象
         else if (Object.prototype.toString.call(target)==='[object Object]') {
-            opt_options['onsuccess'](target);
+            opt_options['onsuccess'](null, target);
         }
         //mockup不是字符串
         else if (typeof target != 'string') {
-            opt_options['onsuccess'](target);
+            opt_options['onsuccess'](null, target);
         }
         //mockup是字符串(url)的话直接返回
         else {

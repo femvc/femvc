@@ -77,7 +77,7 @@ bui.Template = {
     /**
      * @name 解析模板字符串流[增加target]
      * @public
-     * @param {String} tplStr 模板字符串流tpl:<!-- target:mergeTest -->hello ${myName}!
+     * @param {String} tplStr 模板字符串流tpl:<!-- target:mergeTest -->hello #{myName}!
      * @param {Object|string...} opts 提供相应数据的对象或多个字符串
      * @returns {String} 格式化后的字符串
      */
@@ -141,7 +141,7 @@ bui.Template = {
     /**
      * @name 依赖于me.originTargetContainer循环解析targetList中的target
      * @public
-     * @param {String} tplStr 模板字符串流tpl:<!-- target:mergeTest -->hello ${myName}!
+     * @param {String} tplStr 模板字符串流tpl:<!-- target:mergeTest -->hello #{myName}!
      * @param {Object|string...} opts 提供相应数据的对象或多个字符串
      * @returns {String} 格式化后的字符串
      */
@@ -184,14 +184,14 @@ bui.Template = {
      * @public
      * @param {HTMLElement} targetContent  原始模板内容.
      * @param {Object}      model    数据模型
-     * @return {String} 替换掉${varName}变量后的模板内容.
+     * @return {String} 替换掉#{varName}变量后的模板内容.
      */
     merge: function(targetContent, model) {
         var me = this;
         model = model||{};
         targetContent = targetContent||'';
         targetContent = String(targetContent).replace(
-            /\$\{([\.:a-z0-9_]+)\}/ig,
+            /\#\{([\.:a-z0-9_]+)\}/ig,
             function($0, $1) {
                 $1 = $1 == null ? '' : String($1);
                 var varName = $1.replace(/:[a-z]+$/i, ''),
@@ -201,7 +201,7 @@ bui.Template = {
                 if (variable === undefined && bui && bui.context && bui.context.get) { 
                     variable = bui.context.get(varName);
                 }
-                //预留根据变量类型读取,便于后期扩展格式${userName:lang}
+                //预留根据变量类型读取,便于后期扩展格式#{userName:lang}
                 var varType = $1.match(/:([a-z]+)$/);
                 if (varType && varType.length > 1 && me.parseVariableByType) {
                     return me.parseVariableByType(varName, varType[1]);
